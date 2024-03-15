@@ -28,13 +28,19 @@ mkdssp -i [pdb/cif] -o [output.dssp]
 # Goals
 
 - Single protein/gene
-    - [ ] DSSP for secondary structure
-    - [ ] PDB header extraction - syntactically meaningful metadata extraction
+    - [X] DSSP for secondary structure
+    - [X] PDB header extraction - syntactically meaningful metadata extraction __Update:__ If we are only using computational predictions the headers will not be meaningful
     - [ ] point cloud stats(??, spread?)
-    - [ ] structure bio-chemical stats (hydrophobicity, isoelectric points, solvent accessibility)
+    - [X] structure bio-chemical stats (hydrophobicity, isoelectric points, solvent accessibility) __Update:__ could do more stats, but basic ones are implemented
     - [ ] binding domain (this might be hard)
 - Two protein/genes (includes all above)
 	- [ ] TM-align for pairwise structural similarity
 	- [ ] ??? (some tool, leaving in for edit) for identifying poorly folded regions
 - Many protein/genes (includes all above)
     - [ ] ??? ideally this would be a MSA for structure that shows the relationship between them all but this is a full scale project I think
+
+
+__TODO__
+
+- [ ] generalized argument parser
+- [ ] generalized output formatter
