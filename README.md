@@ -107,13 +107,16 @@ Defaults to output to standard out. Look for the line with `TMAlign = [float]` a
 	- [X] DSSP for secondary structure
 	- [X] PDB header extraction - syntactically meaningful metadata extraction __Update:__ If we are only using computational predictions the headers will not be meaningful
 	- [ ] point cloud stats(??, spread?)
+	- [ ] structural motifs (TIM barrell, Greek key)
 	- [X] structure bio-chemical stats (aa-distribution, isoelectric points, solvent accessibility, etc) __Update:__ could do more stats, but basic ones are implemented
-	- [ ] binding domain (this might be hard)
-	- [ ] ??? (some tool, leaving in for edit) for identifying poorly folded regions
+		- [ ] Radius of Gyration
+		- [ ] number/type of inter-residue contacts
+	- [ ] binding domain, if applicable (this might be hard)
+	- [ ] (some tool, leaving in for edit) for identifying poorly folded regions
 - Two protein/genes (includes all above)
 	- [x] TM-align for pairwise structural similarity
 - Many protein/genes (includes all above)
-	- [ ] ??? ideally this would be a MSA for structure that shows the relationship between them all but this is a full scale project I think
+	- [ ] Ideally this would be a MSA for structure that shows the relationship between them all but this is a full scale project I think
 
 
 __TODO__
