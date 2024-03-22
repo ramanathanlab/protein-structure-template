@@ -1,7 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
 import gzip
-from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor
 from collections import Counter
 from typing import Any
@@ -12,6 +11,10 @@ from Bio.PDB.Structure import Structure
 from Bio.SeqUtils.IsoelectricPoint import IsoelectricPoint
 from Bio.SeqUtils import seq1
 from Bio.PDB.SASA import ShrakeRupley
+
+from pst.output import OutputType
+
+__all__ = ["structure_statistics"]
 
 
 def get_structure(fp: Path) -> Structure:
@@ -71,7 +74,7 @@ def get_structure_statistics(fp: Path) -> dict[str, str]:
     structure_output["num_chains"] = len([chain for chain in structure.get_chains()])
     structure_output["num_residues"] = len([res for res in structure.get_residues()])
     structure_output["num_atoms"] = len([atom for atom in structure.get_atoms()])
-    structure_output["amino_acid_count  "] = dict(Counter(amino_acids))
+    structure_output["amino_acid_count"] = dict(Counter(amino_acids))
 
     # Isoelectic point + various related info
     ip = IsoelectricPoint(amino_acids)
@@ -86,7 +89,9 @@ def get_structure_statistics(fp: Path) -> dict[str, str]:
     return structure_output
 
 
-def output_json(parsed_data: dict[str, Any], output_file: Path) -> None:
+def output_json(
+    parsed_data: dict[str, Any], output_file: Path, fields: list[str]
+) -> None:
     """Output JSON representation of PDB structure general statistics
 
     Parameters
@@ -96,64 +101,41 @@ def output_json(parsed_data: dict[str, Any], output_file: Path) -> None:
     output_file : Path
         Path to save overall output file
     """
-
+    output_data = {k: v for k, v in parsed_data.items() if k in fields}
     with open(output_file, "w") as f:
-        json.dump(parsed_data, f)
+        json.dump(output_data, f)
 
 
 def output_template(parsed_data: dict[str, Any], output_file: Path) -> None:
     pass
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser("Structure statistics from PDBx/mmCIF file")
-    parser.add_argument(
-        "--input",
-        type=Path,
-        help="Get header of structure file. If input is a directory will get all structures in directory. If input is a file will get header of that file",
-    )
-    parser.add_argument(
-        "--glob-pattern",
-        "-g",
-        default="**/*.cif*",
-        help="Pattern to search for in the `dssp-dir`",
-    )
-    parser.add_argument(
-        "--output", type=Path, help="Path to output location (can be file)"
-    )
-    parser.add_argument(
-        "--format",
-        "-f",
-        choices=["json", "template"],
-        help="Output format, defaults to stdout if not specified",
-    )
-    parser.add_argument(
-        "--num-cpus",
-        "-n",
-        type=int,
-        default=1,
-        help="Number of processors to use for parsing output",
-    )
+def structure_statistics(
+    input_dir: Path,
+    glob_pattern: str,
+    output: Path | None = None,
+    output_format: str | None = None,
+    fields: list[str] | None = None,
+    num_cpus: int = 1,
+) -> None:
 
-    args = parser.parse_args()
-
-    file_input: Path = args.input
-    if file_input.is_file():
-        files = [file_input]
-    elif file_input.is_dir():
-        files = list(file_input.glob(args.glob_pattern))
+    if input_dir.is_file():
+        files = [input_dir]
+    elif input_dir.is_dir():
+        files = list(input_dir.glob(glob_pattern))
 
     data = {}
     # TODO: Same as dssp, think about streaming to an output format here
-    with ProcessPoolExecutor(max_workers=args.num_cpus) as executor:
+    with ProcessPoolExecutor(max_workers=num_cpus) as executor:
         for fp, res in zip(files, executor.map(get_structure_statistics, files)):
             struct_name = str(fp).rstrip("".join(fp.suffixes))
             data[struct_name] = res
 
-    match args.format:
-        case "json":
-            output_json(data, args.output)
+    match output_format:
+        case OutputType.json:
+            assert output is not None, "Output file must be specified for json output"
+            output_json(data, output, fields)
 
-        case None:
+        case OutputType.stdout:
             for fname, stats in data.items():
-                print(f"{fname}: {stats}")
+                print(f"{Path(fname).stem}: {stats}")

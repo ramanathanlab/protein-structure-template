@@ -1,14 +1,17 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Any, List, TypeVar, Union
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from concurrent.futures import ProcessPoolExecutor
 import json
 
 from pydantic import BaseModel, model_validator, field_validator
 
+from pst.output import OutputType
+
 T = TypeVar("T", bound="BaseModel")
 PathLike = Union[str, Path]
+
+__all__ = ["Protein", "Residue", "process_dssp"]
 
 
 class Residue(BaseModel):
@@ -117,7 +120,9 @@ class Protein(BaseModel):
         return cls(residues=residues)
 
 
-def output_json(parsed_data: dict[str, Protein], output_file: Path) -> None:
+def output_json(
+    parsed_data: dict[str, Protein], output_file: Path, fields: list[str]
+) -> None:
     """Output single jsonl file with key being the file it came from (without suffix) and the values being a dictionary of lists of included fields
 
     *Will not work on especially large datasets (no incremental writing at this point, and json is inherently limiting)*
@@ -132,7 +137,7 @@ def output_json(parsed_data: dict[str, Protein], output_file: Path) -> None:
     output_data = {}
     for filename, prot in parsed_data.items():
         localout = {}
-        for k in args.fields:
+        for k in fields:
             localout[k] = [getattr(elem, k) for elem in prot.residues]
 
         output_data[filename] = localout
@@ -145,70 +150,37 @@ def output_json(parsed_data: dict[str, Protein], output_file: Path) -> None:
 def output_template(parsed_data: dict[str, Protein], output_file: Path) -> None: ...
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser(
-        "DSSP Secondary Structure Parser", formatter_class=ArgumentDefaultsHelpFormatter
-    )
+def process_dssp(
+    dssp_dir: Path,
+    output: Path,
+    glob_pattern: str,
+    output_format: str | None = None,
+    fields: list[str] | None = None,
+    num_cpus: int = 1,
+) -> None:
 
-    parser.add_argument(
-        "--dssp-dir",
-        type=Path,
-        required=True,
-        help="Path to a directory containing DSSP files, will recursively glob",
-    )
-    parser.add_argument(
-        "--glob-pattern",
-        "-g",
-        default="**/*.dssp",
-        help="Pattern to search for in the `dssp-dir`",
-    )
-    parser.add_argument(
-        "--output", type=Path, help="Path to output location (can be file)"
-    )
-    parser.add_argument(
-        "--format",
-        "-f",
-        choices=["json", "template"],
-        help="Output format, if none specified will print to stdout",
-    )
-    parser.add_argument(
-        "--fields",
-        choices=list(Residue.model_fields.keys()),
-        action="append",
-        help=f"Fields to dump to file, available are {list(Residue.model_fields.keys())}",
-    )
-    parser.add_argument(
-        "--num-cpus",
-        "-n",
-        type=int,
-        default=1,
-        help="Number of processors to use for parsing output",
-    )
-
-    args = parser.parse_args()
-
-    dssp_dir = args.dssp_dir
-    files = list(dssp_dir.glob(args.glob_pattern))
+    files = list(dssp_dir.glob(glob_pattern))
 
     data = {}
 
     # Because appending and defaults don't mix well, manually set output fields if they are not given
-    if args.fields is None:
-        args.fields = list(Residue.model_fields)
+    if fields is None:
+        fields = list(Residue.model_fields)
 
     # TODO: Think about streaming to an output format here
-    with ProcessPoolExecutor(max_workers=args.num_cpus) as executor:
+    with ProcessPoolExecutor(max_workers=num_cpus) as executor:
         for file, res in zip(files, executor.map(Protein.from_dssp, files)):
             data[file.name.replace(".dssp", "")] = res
 
-    match args.format:
-        case "json":
-            output_json(data, args.output)
+    match output_format:
+        case OutputType.json:
+            assert output is not None, "Output file must be specified for json output"
+            output_json(data, output, fields)
 
-        case None:
+        case OutputType.stdout:
             for filename, prot in data.items():
                 localout = {}
-                for k in args.fields:
+                for k in fields:
                     localout[k] = " ".join(
                         [str(getattr(elem, k)) for elem in prot.residues]
                     )
