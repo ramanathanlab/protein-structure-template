@@ -2,6 +2,20 @@
 Set of tools for writing templates for structured data extraction from protein structures.
 
 
+# Templating
+
+__Available Fields__
+|  Field  | Type  | Description            |
+| :-----: | :---: | :--------------------- |
+| `$name` | `str` | identifyer for protein |
+| `$residue_dist`| `dict[str, float]` | distribution of amino acid occurences. Ordered dict (high to lowest occurences)
+| `$secondary_structure` | `dict[str, float]`| secondary structure        distribution, keys are helix, sheet, coil, and values are percentage of overall structure, sorted by highest occurring (first key) |
+|`$isoelectric` | `float` | single value isoelectric point value, pH value for neutral charge |
+| `$sasa` | `float` | solvent accessible surface area |
+| | | |
+| `$TMAlign` | :rotating_light:TODO:rotating_light: |
+
+
 # Tools
 
 ## DSSP
@@ -84,7 +98,7 @@ HEADER    HYDROLASE   (SERINE PROTEINASE)         17-MAY-76   1EST
 __Installation__
 
 1. Get [TMAlign.cpp](https://zhanggroup.org/TM-align/TMalign.cpp) from [ZhangLab](https://zhanggroup.org/TM-align)
-2. compile with: `g++ -static -O3 -ffast-math -lm -o TMalign TMalign.cpp`, this will serve as the input to the tmalign.py file. _Note:_ some machines may not support the static flag, feel free to remove. 
+2. compile with: `g++ -static -O3 -ffast-math -lm -o TMalign TMalign.cpp`, this will serve as an input to the tmalign.py file. _Note:_ some machines may not support the static flag, feel free to remove. 
 
 _Note:_ this is available on `ash.cels.anl.gov` at `/home/khippe/github/tm-align/TMalign`
 

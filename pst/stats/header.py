@@ -6,6 +6,8 @@ from concurrent.futures import ProcessPoolExecutor
 from Bio.PDB import MMCIFParser, PDBParser
 from Bio.PDB.Structure import Structure
 
+__all__ = ["get_structure"]
+
 """
 Notes:
 -----------
